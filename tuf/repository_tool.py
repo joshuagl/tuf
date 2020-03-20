@@ -2802,6 +2802,28 @@ class Targets(Metadata):
 
 
 
+def _get_hash(target_filepath):
+  """
+  <Purpose>
+    Generate a hash of target_filepath using HASH_FUNCTION
+
+  <Arguments>
+    target_filepath:
+      A path to a targetfile, relative to the targets directory, to hash
+
+  <Returns>
+    The hash of target_filepath as a string.
+  """
+
+  # TODO: ensure target_filepath is relative to targets_directory?
+  digest_object = securesystemslib.hash.digest(algorithm=HASH_FUNCTION)
+  digest_object.update(target_filepath.encode('utf-8'))
+  return digest_object.hexdigest()
+
+
+
+
+
 
 def create_new_repository(repository_directory, repository_name='default'):
   """
