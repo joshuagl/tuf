@@ -1349,10 +1349,6 @@ class TestTargets(unittest.TestCase):
     self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
         number_of_bins=16)
 
-    # Ensure each hashed bin initially contains zero targets.
-    for delegation in self.targets_object.delegations:
-      self.assertTrue(target1_filepath not in delegation.target_files)
-
     # Add 'target1_filepath' and verify that the relative path of
     # 'target1_filepath' is added to the correct bin.
     self.targets_object.add_target_to_bin(os.path.basename(target1_filepath))
@@ -1433,10 +1429,6 @@ class TestTargets(unittest.TestCase):
     # repository.targets('e').
     self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
                                              number_of_bins=16)
-
-    # Ensure each hashed bin initially contains zero targets.
-    for delegation in self.targets_object.delegations:
-      self.assertTrue(os.path.basename(target1_filepath) not in delegation.target_files)
 
     # Add 'target1_filepath' and verify that the relative path of
     # 'target1_filepath' is added to the correct bin.
