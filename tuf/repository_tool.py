@@ -2824,6 +2824,43 @@ def _get_hash(target_filepath):
 
 
 
+def _find_bin_for_hash(path_hash, number_of_bins):
+  """
+  <Purpose>
+    For a given hashed filename, path_hash, calculate the name of a hashed bin
+    into which this file would be delegated given number_of_bins bins are in
+    use.
+
+  <Arguments>
+    path_hash:
+      The hash of the target file's path
+
+    number_of_bins:
+      The number of hashed_bins in use
+
+  <Returns>
+    The name of the hashed bin path_hash would be binned in.
+  """
+
+  prefix_len = len(f"{number_of_bins - 1:x}")
+  prefix_count = 16 ** prefix_len
+
+  if prefix_count % number_of_bins != 0:
+    raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
+        ' must be a power of 2.')
+
+  bin_size = prefix_count // number_of_bins
+  prefix = int(path_hash[:prefix_len], 16)
+
+  low = prefix - (prefix % bin_size)
+  high = (low + bin_size - 1)
+  if low == high:
+    return f"{low:0{prefix_len}x}"
+  return f"{low:0{prefix_len}x}-{high:0{prefix_len}x}"
+
+
+
+
 
 def create_new_repository(repository_directory, repository_name='default'):
   """
