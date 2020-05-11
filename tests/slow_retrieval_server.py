@@ -84,6 +84,9 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
       self.send_error(404, 'File Not Found!')
 
 
+  def log_request(self, code='-', size='-'):
+    pass
+
 
 def get_random_port():
   port = random.randint(30000, 45000)
