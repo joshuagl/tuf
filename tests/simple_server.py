@@ -64,6 +64,10 @@ class QuietHTTPRequestHandler(SimpleHTTPRequestHandler):
   def log_request(self, code='-', size='-'):
     pass
 
+  def log_error(self, format, *args):
+    pass
+
+
 # NOTE: On Windows/Python2 tests that use this simple_server.py in a
 # subprocesses hang after a certain amount of requests (~68), if a PIPE is
 # passed as Popen's stderr argument. This problem doesn't emerge if
