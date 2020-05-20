@@ -1993,11 +1993,10 @@ class Targets(Metadata):
 
       fileinfo:
         An optional fileinfo dictionary, conforming to
-        tuf.formats.FILEINFO_SCHEMA, providing full information about the
+        tuf.formats.TARGETS_FILEINFO_SCHEMA, providing full information about the
         file, i.e:
           { 'length': 101,
             'hashes': { 'sha256': '123EDF...' },
-            'version': 2, # optional
             'custom': { 'permissions': '600'} # optional
           }
         NOTE: if a custom value is passed, the fileinfo parameter must be None.
@@ -2027,7 +2026,7 @@ class Targets(Metadata):
           " custom or fileinfo, not both.")
 
     if fileinfo:
-      tuf.formats.FILEINFO_SCHEMA.check_match(fileinfo)
+      tuf.formats.TARGETS_FILEINFO_SCHEMA.check_match(fileinfo)
 
     if custom is None:
       custom = {}
@@ -2684,7 +2683,7 @@ class Targets(Metadata):
         Note: 'number_of_bins' must be a power of 2.
 
       fileinfo:
-        An optional fileinfo object, conforming to tuf.formats.FILEINFO_SCHEMA,
+        An optional fileinfo object, conforming to tuf.formats.TARGETS_FILEINFO_SCHEMA,
         providing full information about the file.
 
     <Exceptions>
