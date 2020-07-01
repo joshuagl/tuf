@@ -67,19 +67,38 @@ class TestTufApi(unittest.TestCase):
     shutil.rmtree(cls.temporary_directory)
 
 
+
+  def test_metadata_base(self):
+    # Use of Snapshot is arbitrary, we're just testing the base class features
+    # with real data
+    md = metadata.Snapshot()
+    md.read_from_json(os.path.join(self.repo_dir, 'metadata.staged', 'snapshot.json'))
+
+    self.assertEqual(md.version, 1)
+    md.bump_version()
+    self.assertEqual(md.version, 2)
+
+    self.assertEqual(md.expiration, iso8601.parse_date("2030-01-01T00:00:00Z"))
+    md.bump_expiration()
+    self.assertEqual(md.expiration, iso8601.parse_date("2030-01-02T00:00:00Z"))
+    md.bump_expiration(relativedelta(years=1))
+    self.assertEqual(md.expiration, iso8601.parse_date("2031-01-02T00:00:00Z"))
+
+
   def test_metadata_snapshot(self):
     snapshot = metadata.Snapshot()
     snapshot.read_from_json(os.path.join(self.repo_dir, 'metadata.staged', 'snapshot.json'))
 
-    self.assertEqual(snapshot.version, 1)
-    snapshot.bump_version()
-    self.assertEqual(snapshot.version, 2)
+    # Create a dict representing what we expect the updated data to be
+    fileinfo = snapshot.signed['meta']
+    hashes = {'sha256': 'c2986576f5fdfd43944e2b19e775453b96748ec4fe2638a6d2f32f1310967095'}
+    fileinfo['role1.json']['version'] = 2
+    fileinfo['role1.json']['hashes'] = hashes
+    fileinfo['role1.json']['length'] = 123
 
-    self.assertEqual(snapshot.expiration, iso8601.parse_date("2030-01-01T00:00:00Z"))
-    snapshot.bump_expiration()
-    self.assertEqual(snapshot.expiration, iso8601.parse_date("2030-01-02T00:00:00Z"))
-    snapshot.bump_expiration(relativedelta(years=1))
-    self.assertEqual(snapshot.expiration, iso8601.parse_date("2031-01-02T00:00:00Z"))
+    snapshot.update('role1', 2, 123, hashes)
+    # snapshot.sign()
+    # self.assertEqual(snapshot.signed['meta'], fileinfo)
 
     # snapshot.update()
 
@@ -90,3 +109,29 @@ class TestTufApi(unittest.TestCase):
     # snapshot.verify()
 
     # snapshot.write_to_json(os.path.join(cls.temporary_directory, 'api_snapshot.json'))
+
+
+  def test_metadata_timestamp(self):
+    timestamp = metadata.Timestamp()
+    timestamp.read_from_json(os.path.join(self.repo_dir, 'metadata.staged', 'timestamp.json'))
+
+    self.assertEqual(timestamp.version, 1)
+    timestamp.bump_version()
+    self.assertEqual(timestamp.version, 2)
+
+    self.assertEqual(timestamp.expiration, iso8601.parse_date("2030-01-01T00:00:00Z"))
+    timestamp.bump_expiration()
+    self.assertEqual(timestamp.expiration, iso8601.parse_date("2030-01-02T00:00:00Z"))
+    timestamp.bump_expiration(relativedelta(years=1))
+    self.assertEqual(timestamp.expiration, iso8601.parse_date("2031-01-02T00:00:00Z"))
+
+    hashes = {'sha256': '0ae9664468150a9aa1e7f11feecb32341658eb84292851367fea2da88e8a58dc'}
+    fileinfo = timestamp.signed['meta']['snapshot.json']
+    fileinfo['hashes'] = hashes
+    fileinfo['version'] = 2
+    fileinfo['length'] = 520
+    timestamp.update('snapshot', 2, 520, hashes)
+    # timestamp.sign()
+    # self.assertEqual(timestamp.signed['meta'], fileinfo)
+
+    # timestamp.write_to_json()
