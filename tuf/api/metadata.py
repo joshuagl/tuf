@@ -85,9 +85,14 @@ class Metadata:
 
     def sign(self) -> JsonDict:
         def update_signature(signatures, keyid, signature):
+            updated = False
+            keyid_signature = {'keyid':keyid, 'sig':signature}
             for idx, keyid_sig in enumerate(signatures):
                 if keyid_sig['keyid'] == keyid:
-                    signatures[idx] = {'keyid':keyid, 'sig':signature}
+                    signatures[idx] = keyid_signature
+                    updated = True
+            if not updated:
+                signatures.append({'keyid':keyid, 'sig':signature})
 
         signed = self.signed
         signatures = self.signatures
