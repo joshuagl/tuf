@@ -178,6 +178,26 @@ class Repository(object):
       The name of the repository.  If not supplied, 'rolename' is added to the
       'default' repository.
 
+    use_timestamp_length:
+      Whether to include the optional length attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_timestamp_hashes:
+      Whether to include the optional hashes attribute of the snapshot
+      metadata file in the timestamp metadata.
+      Default is True.
+
+    use_snapshot_length:
+      Whether to include the optional length attribute for targets
+      metadata files in the snapshot metadata.
+      Default is True.
+
+    use_snapshot_hashes:
+      Whether to include the optional hashes attribute for targets
+      metadata files in the snapshot metadata.
+      Default is True.
+
   <Exceptions>
     securesystemslib.exceptions.FormatError, if the arguments are improperly
     formatted.
@@ -191,7 +211,9 @@ class Repository(object):
   """
 
   def __init__(self, repository_directory, metadata_directory,
-      targets_directory, storage_backend, repository_name='default'):
+      targets_directory, storage_backend, repository_name='default',
+      use_timestamp_length=True, use_timestamp_hashes=True,
+      use_snapshot_length=True, use_snapshot_hashes=True):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -201,12 +223,20 @@ class Repository(object):
     securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
     securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
     securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_timestamp_length)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_timestamp_hashes)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_snapshot_length)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(use_snapshot_hashes)
 
     self._repository_directory = repository_directory
     self._metadata_directory = metadata_directory
     self._targets_directory = targets_directory
     self._repository_name = repository_name
     self._storage_backend = storage_backend
+    self._use_timestamp_length = use_timestamp_length
+    self._use_timestamp_hashes = use_timestamp_hashes
+    self._use_snapshot_length = use_snapshot_length
+    self._use_snapshot_hashes = use_snapshot_hashes
 
     try:
       tuf.roledb.create_roledb(repository_name)
@@ -330,14 +360,18 @@ class Repository(object):
           filenames['snapshot'], self._targets_directory,
           self._metadata_directory, self._storage_backend,
           consistent_snapshot, filenames,
-          repository_name=self._repository_name)
+          repository_name=self._repository_name,
+          use_snapshot_length=self._use_snapshot_length,
+          use_snapshot_hashes=self._use_snapshot_hashes)
 
     # Generate the 'timestamp.json' metadata file.
     if 'timestamp' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('timestamp', filenames['timestamp'],
           self._targets_directory, self._metadata_directory,
           self._storage_backend, consistent_snapshot,
-          filenames, repository_name=self._repository_name)
+          filenames, repository_name=self._repository_name,
+          use_timestamp_length=self._use_timestamp_length,
+          use_timestamp_hashes=self._use_timestamp_hashes)
 
     tuf.roledb.unmark_dirty(dirty_rolenames, self._repository_name)
 
@@ -1958,11 +1992,10 @@ class Targets(Metadata):
 
       fileinfo:
         An optional fileinfo dictionary, conforming to
-        tuf.formats.FILEINFO_SCHEMA, providing full information about the
+        tuf.formats.TARGETS_FILEINFO_SCHEMA, providing full information about the
         file, i.e:
           { 'length': 101,
             'hashes': { 'sha256': '123EDF...' },
-            'version': 2, # optional
             'custom': { 'permissions': '600'} # optional
           }
         NOTE: if a custom value is passed, the fileinfo parameter must be None.
@@ -1992,7 +2025,7 @@ class Targets(Metadata):
           " custom or fileinfo, not both.")
 
     if fileinfo:
-      tuf.formats.FILEINFO_SCHEMA.check_match(fileinfo)
+      tuf.formats.TARGETS_FILEINFO_SCHEMA.check_match(fileinfo)
 
     if custom is None:
       custom = {}
@@ -2649,7 +2682,7 @@ class Targets(Metadata):
         Note: 'number_of_bins' must be a power of 2.
 
       fileinfo:
-        An optional fileinfo object, conforming to tuf.formats.FILEINFO_SCHEMA,
+        An optional fileinfo object, conforming to tuf.formats.TARGETS_FILEINFO_SCHEMA,
         providing full information about the file.
 
     <Exceptions>
