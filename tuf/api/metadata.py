@@ -158,7 +158,7 @@ class Snapshot(Metadata):
             version = meta[target_role]['version']
             length = meta[target_role].get('length')
             hashes = meta[target_role].get('hashes')
-            self.targets_fileinfo[f'{target_role}.json'] = tuf.formats.make_metadata_fileinfo(version, length, hashes)
+            self.targets_fileinfo[target_role] = tuf.formats.make_metadata_fileinfo(version, length, hashes)
 
     def signable(self):
         # TODO: probably want to generalise this, a @property.getter in Metadata?
