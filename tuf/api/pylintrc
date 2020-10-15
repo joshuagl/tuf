@@ -1,6 +1,3 @@
-[BASIC]
-good-names=e, fn, fp
-
 [MESSAGE_CONTROL]
 disable=fixme
 
