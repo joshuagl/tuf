@@ -1,0 +1,9 @@
+[BASIC]
+good-names=e, fn, fp
+
+[MESSAGE_CONTROL]
+disable=fixme
+
+[FORMAT]
+indent-string="    "
+max-line-length=79
