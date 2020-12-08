@@ -30,7 +30,7 @@ JsonDict = Dict[str, Any]
 
 
 # Classes.
-class Metadata():
+class Metadata(object):
     """A container for signed TUF metadata.
 
       Provides methods to (de-)serialize JSON metadata from and to file
@@ -249,7 +249,7 @@ class Metadata():
 
 
 
-class Signed:
+class Signed(object):
     """A base class for the signed part of TUF metadata.
 
     Objects with base class Signed are usually included in a Metadata object
