@@ -7,6 +7,7 @@ updates, and create and verify signatures.
 """
 # Imports
 from datetime import datetime, timedelta
+from enum import Enum, unique
 from typing import Any, Dict, Optional
 
 import json
@@ -27,6 +28,14 @@ import tuf.exceptions
 
 # Types
 JsonDict = Dict[str, Any]
+
+
+@unique
+class Roles(Enum):
+    ROOT = 'root'
+    SNAPSHOT = 'snapshot'
+    TIMESTAMP = 'timestamp'
+    TARGETS = 'targets'
 
 
 # Classes.
@@ -81,13 +90,13 @@ class Metadata(object):
         # Dispatch to contained metadata class on metadata _type field.
         _type = metadata['signed']['_type']
 
-        if _type == 'targets':
+        if _type == Roles.TARGETS.value:
             inner_cls = Targets
-        elif _type == 'snapshot':
+        elif _type == Roles.SNAPSHOT.value:
             inner_cls = Snapshot
-        elif _type == 'timestamp':
+        elif _type == Roles.TIMESTAMP.value:
             inner_cls = Timestamp
-        elif _type == 'root':
+        elif _type == Roles.ROOT.value:
             inner_cls = Root
         else:
             raise ValueError(f'unrecognized metadata type "{_type}"')
