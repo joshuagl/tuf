@@ -1512,52 +1512,35 @@ class Updater(object):
             upperbound_filelength)
         file_object.seek(0)
 
-        # Verify 'file_object' according to the callable function.
-        # 'file_object' is also verified if decompressed above (i.e., the
-        # uncompressed version).
         metadata_signable = \
           securesystemslib.util.load_json_string(file_object.read().decode('utf-8'))
 
-        # Determine if the specification version number is supported.  It is
-        # assumed that "spec_version" is in (major.minor.fix) format, (for
-        # example: "1.4.3") and that releases with the same major version
-        # number maintain backwards compatibility.  Consequently, if the major
-        # version number of new metadata equals our expected major version
-        # number, the new metadata is safe to parse.
+        def ver_tuple(ver_str):
+          return tuple(map(int, ver_str.split('.')))
+
         try:
-          metadata_spec_version = metadata_signable['signed']['spec_version']
-          metadata_spec_version_split = metadata_spec_version.split('.')
-          metadata_spec_major_version = int(metadata_spec_version_split[0])
-          metadata_spec_minor_version = int(metadata_spec_version_split[1])
+          # Ensure spec_version major version number matches what we expect
+          metadata_spec_version_str = metadata_signable['signed']['spec_version']
+          metadata_spec_version = ver_tuple(metadata_spec_version_str)
+          code_spec_version = ver_tuple(tuf.SPECIFICATION_VERSION)
 
-          code_spec_version_split = tuf.SPECIFICATION_VERSION.split('.')
-          code_spec_major_version = int(code_spec_version_split[0])
-          code_spec_minor_version = int(code_spec_version_split[1])
-
-          if metadata_spec_major_version != code_spec_major_version:
+          if metadata_spec_version[0] != code_spec_version[0]:
             raise tuf.exceptions.UnsupportedSpecificationError(
-                'Downloaded metadata that specifies an unsupported '
-                'spec_version.  This code supports major version number: ' +
-                repr(code_spec_major_version) + '; however, the obtained '
-                'metadata lists version number: ' + str(metadata_spec_version))
+                'Incompatible spec_version. Got "%s", expected "%s".' %
+                (metadata_spec_version_str, code_spec_version))
 
-          #report to user if minor versions do not match, continue with update
-          if metadata_spec_minor_version != code_spec_minor_version:
-            logger.info("Downloaded metadata that specifies a different minor " +
-                "spec_version. This code has version " +
-                str(tuf.SPECIFICATION_VERSION) +
-                " and the metadata lists version number " +
-                str(metadata_spec_version) +
-                ". The update will continue as the major versions match.")
+          # Warn if spec_version minor version number does not not match
+          if metadata_spec_version[1] != code_spec_version[1]:
+            logger.info("Downloaded metadata has minor version mismatch. Got %s"
+                        ", expected %s. Continuing" % (metadata_spec_version_str,
+                                                       tuf.SPECIFICATION_VERSION))
 
         except (ValueError, TypeError) as error:
           six.raise_from(securesystemslib.exceptions.FormatError('Improperly'
-              ' formatted spec_version, which must be in major.minor.fix format'),
+              ' formatted spec_version. Must be in semver (major.minor.patch)'
+              ' format'),
               error)
 
-        # If the version number is unspecified, ensure that the version number
-        # downloaded is greater than the currently trusted version number for
-        # 'metadata_role'.
         version_downloaded = metadata_signable['signed']['version']
 
         if expected_version is not None:
@@ -1572,11 +1555,6 @@ class Updater(object):
         # downloaded version is at least greater than the one locally
         # available.
         else:
-          # Verify that the version number of the locally stored
-          # 'timestamp.json', if available, is less than what was downloaded.
-          # Otherwise, accept the new timestamp with version number
-          # 'version_downloaded'.
-
           try:
             current_version = \
               self.metadata['current'][metadata_role]['version']
