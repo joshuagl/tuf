@@ -70,7 +70,10 @@
 
 from setuptools import setup
 from setuptools import find_packages
+import os
 
+if not os.environ.get('SOURCE_DATE_EPOCH'):
+  os.environ['SOURCE_DATE_EPOCH'] = "1611836638"
 
 with open('README.md') as file_object:
   long_description = file_object.read()
