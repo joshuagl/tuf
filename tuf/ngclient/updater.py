@@ -175,19 +175,19 @@ class Updater:
             TODO: download-related errors
             TODO: file write errors
         """
-        if target_base_url is None and self._target_base_url is None:
+        tgt_base_url: str = self._target_base_url or ""
+        if target_base_url is not None:
+            tgt_base_url = _ensure_trailing_slash(target_base_url)
+
+        if not tgt_base_url:
             raise ValueError(
                 "target_base_url must be set in either download_target() or "
                 "constructor"
             )
-        if target_base_url is None:
-            target_base_url = self._target_base_url
-        else:
-            target_base_url = _ensure_trailing_slash(target_base_url)
 
         target_filepath: str = targetinfo["filepath"]
         target_fileinfo: TargetFile = targetinfo["fileinfo"]
-        full_url = parse.urljoin(target_base_url, target_filepath)
+        full_url = parse.urljoin(tgt_base_url, target_filepath)
 
         with download.download_file(
             full_url, target_fileinfo.length, self._fetcher
