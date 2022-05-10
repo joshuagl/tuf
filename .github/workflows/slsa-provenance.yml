@@ -1,0 +1,60 @@
+name: SLSA Provenance
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    outputs:
+      subjects: ${{ steps.digest.outputs.digests }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - name: Set up Python
+        uses: actions/setup-python@0ebf233433c08fb9061af664d501c3f3ff0e9e20
+        with:
+          python-version: '3.x'
+
+      - name: Install build dependency
+        run: python3 -m pip install --upgrade pip build
+
+      - name: Build binary wheel and source tarball
+        run: python3 -m build --sdist --wheel --outdir dist/ .
+
+      - id: digest
+        name: Generate digests of subjects
+        shell: bash
+        # DIGEST=$(sha256sum dist/tuf-${{ github.ref_name }}.tar.gz)
+        # DIGEST="${DIGEST}\n$(sha256sum dist/tuf-${{ github.ref_name }}-py3-none-any.whl"
+        run: |
+          set -euo pipefail
+          DIGEST=$(sha256sum dist/tuf-1.1.0.tar.gz)
+          DIGEST="${DIGEST}
+          $(sha256sum dist/tuf-1.1.0-py3-none-any.whl)"
+          DIGEST="${DIGEST//'%'/'%25'}"
+          DIGEST="${DIGEST//$'\n'/'%0A'}"
+          DIGEST="${DIGEST//$'\r'/'%0D'}"
+          echo "::set-output name=digests::$DIGEST"
+
+      - name: Store build artifacts
+        uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
+        # NOTE: The GitHub release page contains the release artifacts too, but using
+        # GitHub upload/download actions seems robuster: there is no need to compute
+        # download URLs and tampering with artifacts between jobs is more limited.
+        with:
+          name: build-artifacts
+          path: dist
+
+  provenance:
+    needs: [build]
+    permissions:
+      id-token: write
+      contents: read
+    uses: joshuagl/slsa-github-generator/.github/workflows/slsa2_provenance.yml@main
+    with:
+      subjects: "${{ needs.build.outputs.subjects }}"
