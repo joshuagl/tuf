@@ -1,0 +1,13 @@
+name: SLSA Build
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    permissions:
+      id-token: write
+      contents: read
+    uses: joshuagl/slsa-github-generator/.github/workflows/slsa3_build.yml@joshuagl/build-cmd
+    with:
+      build-commands: "python3 -m build --sdist --wheel --outdir dist/ ."
