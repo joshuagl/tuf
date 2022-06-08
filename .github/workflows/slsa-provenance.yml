@@ -7,7 +7,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     outputs:
-      subjects: ${{ steps.digest.outputs.digests }}
+      subjects: ${{ steps.digest.outputs.digest }}
     steps:
       - name: Checkout release tag
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
@@ -33,13 +33,7 @@ jobs:
         # DIGEST="${DIGEST}\n$(sha256sum dist/tuf-${{ github.ref_name }}-py3-none-any.whl"
         run: |
           set -euo pipefail
-          DIGEST=$(sha256sum dist/tuf-1.1.0.tar.gz)
-          DIGEST="${DIGEST}
-          $(sha256sum dist/tuf-1.1.0-py3-none-any.whl)"
-          DIGEST="${DIGEST//'%'/'%25'}"
-          DIGEST="${DIGEST//$'\n'/'%0A'}"
-          DIGEST="${DIGEST//$'\r'/'%0D'}"
-          echo "::set-output name=digests::$DIGEST"
+          echo "::set-output name=digest::$(sha256sum dist/tuf-1.1.0.tar.gz dist/tuf-1.1.0-py3-none-any.whl | base64 -w0)"
 
       - name: Store build artifacts
         uses: actions/upload-artifact@6673cd052c4cd6fcf4b4e6e60ea986c889389535
@@ -55,6 +49,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    uses: joshuagl/slsa-github-generator/.github/workflows/slsa2_provenance.yml@main
+      actions: read
+    uses: slsa-framework/slsa-github-generator/.github/workflows/slsa2_provenance.yml@main
     with:
-      subjects: "${{ needs.build.outputs.subjects }}"
+      base64-subjects: "${{ needs.build.outputs.subjects }}"
