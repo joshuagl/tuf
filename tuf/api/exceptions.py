@@ -40,6 +40,9 @@ class ExpiredMetadataError(RepositoryError):
 class LengthOrHashMismatchError(RepositoryError):
     """An error while checking the length and hash values of an object."""
 
+class KeyRotatedError(RepositoryError):
+    """Indicate that a key has been rotated so new metadata must be fetched."""
+
 
 #### Download Errors ####
 

@@ -123,9 +123,9 @@ class Updater:
             DownloadError: Download of a metadata file failed in some way
         """
 
-        self._load_root()
-        self._load_timestamp()
-        self._load_snapshot()
+        ts_key_changed, ss_key_changed = self._load_root()
+        self._load_timestamp(ts_key_changed)
+        self._load_snapshot(ss_key_changed)
         self._load_targets(Targets.type, Root.type)
 
     def _generate_target_file_path(self, targetinfo: TargetFile) -> str:
@@ -296,7 +296,7 @@ class Updater:
                     pass
             raise e
 
-    def _load_root(self) -> None:
+    def _load_root(self) -> tuple[bool, bool]:
         """Load remote root metadata.
 
         Sequentially load and persist on local disk every newer root metadata
@@ -306,6 +306,8 @@ class Updater:
         # Update the root role
         lower_bound = self._trusted_set.root.signed.version + 1
         upper_bound = lower_bound + self.config.max_root_rotations
+
+        trusted_root = self._trusted_set.root.signed
 
         for next_version in range(lower_bound, upper_bound):
             try:
@@ -323,14 +325,46 @@ class Updater:
                 # 404/403 means current root is newest available
                 break
 
-    def _load_timestamp(self) -> None:
+        new_root = self._trusted_set.root.signed
+
+        # TODO: ensure this is clarified _somewhere_ in spec-land (secondary
+        # literature?), ref:
+        # https://github.com/sigstore/root-signing/pull/407#discussion_r982744221
+
+        # Per 5.3.11 if timestamp keys are rotated, then the trusted timestamp
+        # is no longer valid and should not be used
+        new_ts = new_root.roles.get("timestamp")
+        trusted_ts = trusted_root.roles.get("timestamp")
+        ts_key_changed = True
+        # TODO: is it sufficient to compare keyids?
+        if sorted(new_ts.keyids) == sorted(trusted_ts.keyids):
+            ts_key_changed = False
+
+        # Per 5.3.11 if snapshot keys are rotated, then the trusted snapshot
+        # is no longer valid and should not be used
+        new_ss = new_root.roles.get("snapshot")
+        trusted_ss = trusted_root.roles.get("snapshot")
+        ss_key_changed = True
+        # TODO: is it sufficient to compare keyids?
+        if sorted(new_ss.keyids) != sorted(trusted_ss.keyids):
+            ss_key_changed = False
+
+        # Note: returning two values here smells a bit, but this method is
+        # the only place we have access to the initial trusted root to do
+        # the comparison, unless we re-load it later – also smelly.
+        return ts_key_changed, ss_key_changed
+
+    def _load_timestamp(self, ts_key_changed: bool) -> None:
         """Load local and remote timestamp metadata"""
-        try:
-            data = self._load_local_metadata(Timestamp.type)
-            self._trusted_set.update_timestamp(data)
-        except (OSError, exceptions.RepositoryError) as e:
-            # Local timestamp does not exist or is invalid
-            logger.debug("Local timestamp not valid as final: %s", e)
+
+        # Only load local timestamp if the key has not been rotated
+        if ts_key_changed == False:
+            try:
+                data = self._load_local_metadata(Timestamp.type)
+                self._trusted_set.update_timestamp(data)
+            except (OSError, exceptions.RepositoryError) as e:
+                # Local timestamp does not exist or is invalid
+                logger.debug("Local timestamp not valid as final: %s", e)
 
         # Load from remote (whether local load succeeded or not)
         data = self._download_metadata(
@@ -345,9 +379,13 @@ class Updater:
 
         self._persist_metadata(Timestamp.type, data)
 
-    def _load_snapshot(self) -> None:
+    def _load_snapshot(self, ss_key_changed: bool) -> None:
         """Load local (and if needed remote) snapshot metadata"""
+
+        # Only load local snapshot if the key has not been rotated
         try:
+            if ss_key_changed == True:
+                raise exceptions.KeyRotatedError()
             data = self._load_local_metadata(Snapshot.type)
             self._trusted_set.update_snapshot(data, trusted=True)
             logger.debug("Local snapshot is valid: not downloading new one")
